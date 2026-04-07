@@ -1,0 +1,37 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Backend Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build Frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Upload Frontend to S3
+        run: |
+          aws s3 sync build/ s3://staging-bucket
+
+      - name: Deploy Backend to EC2
+        run: |
+          ssh ubuntu@your-ec2-ip "
+          cd project &&
+          git pull &&
+          pip install -r requirements.txt &&
+          python manage.py migrate &&
+          sudo systemctl restart gunicorn &&
+          sudo systemctl restart celery
+          "
